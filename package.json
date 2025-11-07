@@ -1,0 +1,31 @@
+{
+  "name": "daily-tens-clone",
+  "version": "1.0.0",
+  "description": "A clone of Daily Tens, a quiz game with questions and answers.",
+  "main": "src/app/page.tsx",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "next": "^16.0.1",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "@types/react": "19.2.2",
+    "eslint": "latest",
+    "eslint-config-next": "latest",
+    "typescript": "latest"
+  },
+  "keywords": [
+    "nextjs",
+    "quiz",
+    "game"
+  ],
+  "author": "letapr",
+  "license": "MIT"
+}
