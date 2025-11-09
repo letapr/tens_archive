@@ -35,10 +35,10 @@ export const allCountries = [
   "Vatican City", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
 ];
 
-export const gameData = {
-  title: "States With the Most Shoreline",
-  date: "November 7, 2025",
-  maxLives: 5,
+// Initial static data that will be replaced with DynamoDB data
+export const initialGameData = {
+  title: "_",
+  date: new Date().toISOString().split('T')[0],
   correctAnswers: [
     "Alaska",
     "Florida",

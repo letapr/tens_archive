@@ -95,6 +95,32 @@ body {
   position: relative;
 }
 
+.loading,
+.error-message {
+  text-align: center;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: var(--input-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  max-width: 600px;
+}
+
+.loading {
+  font-size: 1.2rem;
+  color: var(--text-color);
+}
+
+.error-message h2 {
+  color: #e74c3c;
+  margin-bottom: 1rem;
+}
+
+.error-message p {
+  color: var(--text-color);
+  font-size: 1.1rem;
+}
+
 .answer-slot {
   position: absolute;
   inset: 0;

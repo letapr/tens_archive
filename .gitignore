@@ -1,2 +1,6 @@
 .next
 node_modules
+.env.local
+# create db
+# implement db into code
+# deploy app and db

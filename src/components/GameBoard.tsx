@@ -1,9 +1,12 @@
 "use client"
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { gameData, allStates, allCountries } from '../constants/gameData';
+import { initialGameData, allStates, allCountries } from '../constants/gameData';
+import { GAME_CONFIG } from '../utils/dynamodb';
+import { fetchDailyGame } from '../utils/dynamodb';
 
 const GameBoard: React.FC = () => {
+    const [gameData, setGameData] = useState(initialGameData);
     const suggestionList = useMemo(() => {
         const title = gameData.title.toLowerCase();
         if (title.includes('states')) {
@@ -12,12 +15,33 @@ const GameBoard: React.FC = () => {
             return allCountries;
         }
         return [];
-    }, []);
+    }, [gameData.title]);
     const [answers, setAnswers] = useState<(string | null)[]>(Array(10).fill(null));
     const [currentAnswer, setCurrentAnswer] = useState('');
-    const [lives, setLives] = useState(gameData.maxLives);
+    const [lives, setLives] = useState(GAME_CONFIG.maxLives);
     const [gameOver, setGameOver] = useState(false);
     const [correctCount, setCorrectCount] = useState(0);
+    
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const loadGameData = async () => {
+            try {
+                const data = await fetchDailyGame();
+                setGameData(data);
+                setError(null);
+            } catch (error) {
+                console.error('Failed to load game data:', error);
+                setError('No game available for today');
+                setGameOver(true);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadGameData();
+    }, []);
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [guessedAnswers, setGuessedAnswers] = useState<Set<string>>(new Set());
@@ -33,7 +57,7 @@ const GameBoard: React.FC = () => {
         }
 
         const index = gameData.correctAnswers.findIndex(
-            correct => correct.toLowerCase() === normalizedAnswer
+            (correct: string) => correct.toLowerCase() === normalizedAnswer
         );
         
         // Add to guessed answers regardless of correctness
@@ -123,11 +147,30 @@ const GameBoard: React.FC = () => {
         ));
     };
 
+    if (loading) {
+        return (
+            <div className="game-board">
+                <div className="loading">Loading today's game...</div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="game-board">
+                <div className="error-message">
+                    <h2>{error}</h2>
+                    <p>Please check back later for the next game!</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="game-board">
             <h1 className="game-title">{gameData.title}</h1>
             <div className="lives">
-                {Array(gameData.maxLives).fill(null).map((_, i) => (
+                {Array(GAME_CONFIG.maxLives).fill(null).map((_, i) => (
                     <span key={i} className="heart">
                         {i < lives ? '❤️' : '💔'}
                     </span>
@@ -171,7 +214,7 @@ const GameBoard: React.FC = () => {
             </div>
             {gameOver && (
                 <div className="game-over">
-                    {lives === 0 ? (
+                    {lives <= 0 ? (
                         <h2>Game Over! You ran out of lives.</h2>
                     ) : (
                         <h2>Congratulations! You found all the states!</h2>
