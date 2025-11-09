@@ -1,5 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 
 if (!process.env.AWS_REGION || 
     !process.env.AWS_ACCESS_KEY_ID || 
@@ -31,13 +31,46 @@ export interface GameData {
     correctAnswers: string[];
 }
 
-export async function fetchDailyGame(): Promise<GameData> {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+export async function findMostRecentGame(fromDate: string): Promise<string | null> {
+    // Scan the table for all games up to the given date
+    const command = new ScanCommand({
+        TableName: process.env.DYNAMODB_TABLE_NAME,
+        FilterExpression: "#date <= :date",
+        ExpressionAttributeNames: {
+            "#date": "pk"
+        },
+        ExpressionAttributeValues: {
+            ":date": fromDate
+        }
+    });
+
+    try {
+        const response = await docClient.send(command);
+        if (!response.Items || response.Items.length === 0) {
+            return null;
+        }
+
+        // Sort the dates in descending order and get the most recent one
+        const sortedDates = response.Items
+            .map(item => item.pk)
+            .sort()
+            .reverse();
+
+        // Return the most recent date that's not the current date
+        return sortedDates.find(date => date !== fromDate) || null;
+    } catch (error) {
+        console.error('Error finding most recent game:', error);
+        return null;
+    }
+}
+
+export async function fetchDailyGame(date?: string): Promise<GameData> {
+    const gameDate = date || new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
     const command = new GetCommand({
         TableName: process.env.DYNAMODB_TABLE_NAME,
         Key: {
-            pk: today
+            pk: gameDate
         }
     });
 
@@ -45,7 +78,7 @@ export async function fetchDailyGame(): Promise<GameData> {
         const response = await docClient.send(command);
         
         if (!response.Item) {
-            throw new Error('No game data found for today');
+            throw new Error(`No game data found for ${gameDate}`);
         }
 
         return {
@@ -54,23 +87,7 @@ export async function fetchDailyGame(): Promise<GameData> {
             correctAnswers: response.Item.correctAnswers
         };
     } catch (error) {
-        console.error('Error fetching game data:', error);
-        // Fallback data in case of error
-        return {
-            title: "States With the Most Shoreline",
-            date: today,
-            correctAnswers: [
-                "Alaska",
-                "Florida",
-                "California",
-                "Hawaii",
-                "Louisiana",
-                "Michigan",
-                "Texas",
-                "Virginia",
-                "Maine",
-                "North Carolina"
-            ]
-        };
+        // Instead of providing fallback data, let the error propagate
+        throw error;
     }
 }

@@ -19,10 +19,94 @@ body {
   padding: 20px;
 }
 
+.date-picker {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.date-picker input {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: 25px;
+  font-size: 1rem;
+  color: var(--text-color);
+  background: var(--input-bg);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.date-picker input:hover,
+.date-picker input:focus {
+  border-color: #7ba6f8;
+}
+
+.date-picker input {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: 25px;
+  font-size: 1rem;
+  color: var(--text-color);
+  background: var(--input-bg);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+  min-width: 150px;
+}
+
+.date-picker input::-webkit-calendar-picker-indicator {
+  margin-right: 25px;
+}
+
+.date-picker input:hover,
+.date-picker input:focus {
+  border-color: #7ba6f8;
+}
+
+.restore-heart-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  background: var(--input-bg);
+  color: var(--text-color);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
+  z-index: 1;
+}
+
+.restore-heart-button:hover:not(.disabled) {
+  background: var(--border-color);
+  color: var(--input-bg);
+  transform: scale(1.05);
+}
+
+.restore-heart-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--primary-bg);
+}
+
 .game-title {
   text-align: center;
   font-size: 2rem;
   margin-bottom: 1.5rem;
+  color: var(--text-color);
+}
+
+h1.title {
+  font-size: 2.5rem;
+  margin: 1rem 0;
   color: var(--text-color);
 }
 
@@ -121,6 +205,23 @@ body {
   font-size: 1.1rem;
 }
 
+.load-previous-button {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  border: 2px solid var(--border-color);
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.load-previous-button:hover {
+  background-color: var(--border-color);
+  color: var(--input-bg);
+}
+
 .answer-slot {
   position: absolute;
   inset: 0;
@@ -153,6 +254,11 @@ body {
   background: #2f4f4f;
   color: white;
   transform: rotateY(180deg);
+}
+
+.answer-slot.revealed .answer-slot-back {
+  background: #d14141;
+  animation: fadeIn 0.5s ease-in;
 }
 
 .answer-number {

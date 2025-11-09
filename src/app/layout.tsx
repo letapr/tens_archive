@@ -1,4 +1,8 @@
+'use client';
+
 import './globals.css';
+import Header from '../components/Header';
+import { GameProvider } from '../context/GameContext';
 
 export default function RootLayout({
   children,
@@ -8,15 +12,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div>
-          <header>
-            <h1>Daily Tens Clone</h1>
-          </header>
-          <main>{children}</main>
-          <footer>
-            <p>&copy; {new Date().getFullYear()} Daily Tens Clone. Made for Fabiana </p>
-          </footer>
-        </div>
+        <GameProvider>
+          <div>
+            <Header />
+            <main>{children}</main>
+            <footer>
+              <p>{new Date().getFullYear()} Daily Tens Clone. Made with love for Fabiana </p>
+            </footer>
+          </div>
+        </GameProvider>
       </body>
     </html>
   );

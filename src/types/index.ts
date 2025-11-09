@@ -1,13 +1,14 @@
 // src/types/index.ts
 
-export interface Question {
-    id: number;
-    question: string;
-    answers: string[];
-    correctAnswer: string;
+export interface GameData {
+    pk: string;
+    date: string;
+    title: string;
+    correctAnswers: string[];
 }
 
-export interface GameData {
-    title: string;
-    questions: Question[];
+export interface GameResponse {
+    error?: string;
+    data?: GameData;
+    message?: string;
 }

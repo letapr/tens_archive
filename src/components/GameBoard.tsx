@@ -3,10 +3,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { initialGameData, allStates, allCountries } from '../constants/gameData';
 import { GAME_CONFIG } from '../utils/dynamodb';
-import { fetchDailyGame } from '../utils/dynamodb';
+import { fetchDailyGame, findMostRecentGame } from '../utils/dynamodb';
+import { useGame } from '../context/GameContext';
 
 const GameBoard: React.FC = () => {
     const [gameData, setGameData] = useState(initialGameData);
+    const [selectedDate, setSelectedDate] = useState('');
+    const [hasUserInteracted, setHasUserInteracted] = useState(false);
     const suggestionList = useMemo(() => {
         const title = gameData.title.toLowerCase();
         if (title.includes('states')) {
@@ -18,30 +21,84 @@ const GameBoard: React.FC = () => {
     }, [gameData.title]);
     const [answers, setAnswers] = useState<(string | null)[]>(Array(10).fill(null));
     const [currentAnswer, setCurrentAnswer] = useState('');
-    const [lives, setLives] = useState(GAME_CONFIG.maxLives);
+    const { lives, setLives } = useGame();
     const [gameOver, setGameOver] = useState(false);
     const [correctCount, setCorrectCount] = useState(0);
     
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        const loadGameData = async () => {
-            try {
-                const data = await fetchDailyGame();
-                setGameData(data);
-                setError(null);
-            } catch (error) {
-                console.error('Failed to load game data:', error);
-                setError('No game available for today');
-                setGameOver(true);
-            } finally {
-                setLoading(false);
+    const loadGameData = async (date: string, isUserInteraction = false) => {
+        setLoading(true);
+        try {
+            const response = await fetch(`/api/game?date=${date}`);
+            if (!response.ok) {
+                throw new Error('Game data not available');
             }
+            const data = await response.json();
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            setGameData(data);
+            setSelectedDate(date); // Set the date when we successfully load the game
+            setError(null);
+            setAnswers(Array(10).fill(null));
+            setLives(GAME_CONFIG.maxLives);
+            setGameOver(false);
+            setCorrectCount(0);
+            setGuessedAnswers(new Set());
+        } catch (error) {
+            console.error('Failed to load game data:', error);
+            if (isUserInteraction) {
+                setError(`No game available for ${date}`);
+                setGameOver(true);
+                setSelectedDate(date); // Keep the selected date even if it fails
+            } else {
+                // If this is the initial load, try to load the most recent game
+                const previousDate = await findMostRecentGame(date);
+                if (previousDate) {
+                    await loadGameData(previousDate);
+                    return;
+                }
+                setError('No games available');
+                setGameOver(true);
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadPreviousGame = async () => {
+        setLoading(true);
+        try {
+            const previousDate = await findMostRecentGame(selectedDate);
+            if (!previousDate) {
+                setError('No previous games found');
+                return;
+            }
+            await loadGameData(previousDate, true);
+        } catch (error) {
+            console.error('Failed to load previous game:', error);
+            setError('Failed to load previous game');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newDate = e.target.value;
+        setHasUserInteracted(true);
+        loadGameData(newDate, true);
+    };
+
+    useEffect(() => {
+        const loadInitialGame = async () => {
+            const today = new Date().toISOString().split('T')[0];
+            await loadGameData(today, false);
         };
 
-        loadGameData();
-    }, []);
+        loadInitialGame();
+    }, []); // Empty dependency array means this only runs once on mount
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [guessedAnswers, setGuessedAnswers] = useState<Set<string>>(new Set());
@@ -78,7 +135,7 @@ const GameBoard: React.FC = () => {
         if (currentAnswer.trim() && !gameOver) {
             const result = checkAnswer(currentAnswer);
             if (result === 'incorrect') {
-                setLives(prev => prev - 1);
+                setLives(lives - 1);
             }
             setCurrentAnswer('');
             setSuggestions([]);
@@ -131,20 +188,26 @@ const GameBoard: React.FC = () => {
     };
 
     const renderAnswerSlots = () => {
-        return Array(10).fill(null).map((_, index) => (
-            <div key={index} className="answer-slot-container">
-                <div className={`answer-slot ${answers[index] ? 'flipped' : ''}`}>
-                    <div className="answer-slot-front">
-                        <span className="answer-number">{index + 1}.</span>
-                        <div className="answer-text">???</div>
-                    </div>
-                    <div className="answer-slot-back">
-                        <span className="answer-number">{index + 1}.</span>
-                        <div className="answer-text">{answers[index]}</div>
+        return Array(10).fill(null).map((_, index) => {
+            const showAnswer = answers[index] || (gameOver && lives <= 0);
+            const answerText = showAnswer ? (answers[index] || gameData.correctAnswers[index]) : '???';
+            const isRevealed = showAnswer && !answers[index];
+            
+            return (
+                <div key={index} className="answer-slot-container">
+                    <div className={`answer-slot ${showAnswer ? 'flipped' : ''} ${isRevealed ? 'revealed' : ''}`}>
+                        <div className="answer-slot-front">
+                            <span className="answer-number">{index + 1}.</span>
+                            <div className="answer-text">???</div>
+                        </div>
+                        <div className="answer-slot-back">
+                            <span className="answer-number">{index + 1}.</span>
+                            <div className="answer-text">{answerText}</div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        ));
+            );
+        });
     };
 
     if (loading) {
@@ -155,12 +218,29 @@ const GameBoard: React.FC = () => {
         );
     }
 
-    if (error) {
+    const DatePicker = () => (
+        <div className="date-picker">
+            <input
+                type="date"
+                value={selectedDate}
+                onChange={handleDateChange}
+                max={new Date().toISOString().split('T')[0]}
+            />
+        </div>
+    );
+
+    if (error && (hasUserInteracted || error === 'No games available')) {
         return (
             <div className="game-board">
+                <DatePicker />
                 <div className="error-message">
                     <h2>{error}</h2>
-                    <p>Please check back later for the next game!</p>
+                    <button 
+                        className="load-previous-button"
+                        onClick={loadPreviousGame}
+                    >
+                        Load Previous Game
+                    </button>
                 </div>
             </div>
         );
@@ -168,6 +248,7 @@ const GameBoard: React.FC = () => {
 
     return (
         <div className="game-board">
+            <DatePicker />
             <h1 className="game-title">{gameData.title}</h1>
             <div className="lives">
                 {Array(GAME_CONFIG.maxLives).fill(null).map((_, i) => (
@@ -215,9 +296,12 @@ const GameBoard: React.FC = () => {
             {gameOver && (
                 <div className="game-over">
                     {lives <= 0 ? (
-                        <h2>Game Over! You ran out of lives.</h2>
+                        <>
+                            <h2>Game Over! You ran out of lives.</h2>
+                            <p>The remaining answers have been revealed in red.</p>
+                        </>
                     ) : (
-                        <h2>Congratulations! You found all the states!</h2>
+                        <h2>Congratulations! You found all the answers!</h2>
                     )}
                 </div>
             )}
