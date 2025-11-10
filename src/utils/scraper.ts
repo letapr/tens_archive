@@ -109,7 +109,8 @@ export async function scrapeGameData(): Promise<{ title: string; correctAnswers:
                     break;
                 }
             } catch (e) {
-                console.log(`Selector ${selector} failed:`, e.message);
+                const error = e as Error;
+                console.log(`Selector ${selector} failed:`, error.message);
             }
         }
 

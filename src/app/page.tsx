@@ -1,7 +1,7 @@
 import React from 'react';
 import Header from '../components/Header';
 import GameBoard from '../components/GameBoard';
-import { gameData } from '../constants/gameData';
+import { initialGameData } from '../constants/gameData';
 
 const HomePage = () => {
     return (
