@@ -3,7 +3,7 @@ import { DynamoDBDocumentClient, GetCommand, ScanCommand } from '@aws-sdk/lib-dy
 
 if (!process.env.AWS_REGION || 
     !process.env.AWS_ACCESS_KEY_ID || 
-    !process.env.AWS_SECRET_ACCESS_KEY || 
+    !process.env.SECRET_ACCESS_KEY || 
     !process.env.DYNAMODB_TABLE_NAME) {
     throw new Error('Missing required AWS environment variables. Please check your .env.local file.');
 }
@@ -13,7 +13,7 @@ const AWS_CONFIG = {
     region: process.env.AWS_REGION,
     credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+        secretAccessKey: process.env.SECRET_ACCESS_KEY
     }
 };
 
